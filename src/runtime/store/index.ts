@@ -62,13 +62,13 @@ export function readable<T>(value?: T, start?: StartStopNotifier<T>): Readable<T
  * @param {StartStopNotifier=}start start and stop notifications for subscriptions
  */
 export function writable<T>(value?: T, start: StartStopNotifier<T> = noop): Writable<T> {
-	let stop: Unsubscriber;
+	const stops: Set<Unsubscriber> = new Set();
 	const subscribers: Set<SubscribeInvalidateTuple<T>> = new Set();
 
 	function set(new_value: T): void {
 		if (safe_not_equal(value, new_value)) {
 			value = new_value;
-			if (stop) { // store is ready
+			if (stops.size) { // store is ready
 				const run_queue = !subscriber_queue.length;
 				for (const subscriber of subscribers) {
 					subscriber[1]();
@@ -90,18 +90,18 @@ export function writable<T>(value?: T, start: StartStopNotifier<T> = noop): Writ
 
 	function subscribe(run: Subscriber<T>, invalidate: Invalidator<T> = noop): Unsubscriber {
 		const subscriber: SubscribeInvalidateTuple<T> = [run, invalidate];
+    const stop = start(set) || noop;
+
 		subscribers.add(subscriber);
-		if (subscribers.size === 1) {
-			stop = start(set) || noop;
-		}
+    stops.add(stop);
+
 		run(value);
 
 		return () => {
 			subscribers.delete(subscriber);
-			if (subscribers.size === 0) {
-				stop();
-				stop = null;
-			}
+      stops.delete(stop);
+
+      stop();
 		};
 	}
 
