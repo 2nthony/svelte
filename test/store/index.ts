@@ -47,7 +47,7 @@ describe('store', () => {
 			assert.equal(called, 1);
 
 			const unsubscribe2 = store.subscribe(() => { });
-			assert.equal(called, 1);
+			assert.equal(called, 2);
 
 			unsubscribe1();
 			assert.equal(called, 1);
